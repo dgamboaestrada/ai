@@ -1,5 +1,10 @@
 ---
+name: git-commit
 description: Git commit staged
+license: MIT
+metadata:
+  author: Daniel Gamboa Estrada
+  version: "0.0.1"
 ---
 
 ## Steps to commit staged files in git
