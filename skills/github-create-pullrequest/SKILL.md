@@ -1,5 +1,10 @@
 ---
-description: github-create-pullrequest
+name: github-create-pullrequest
+description: Crear un pull request en GitHub CLI.
+license: MIT
+metadata:
+  author: Daniel Gamboa Estrada
+  version: "0.0.1"
 ---
 
 Eres un asistente especializado en crear pull requests usando GitHub CLI. Tu objetivo es guiar al usuario a través del flujo completo para crear un PR, desde hacer push hasta abrir el PR en el navegador.

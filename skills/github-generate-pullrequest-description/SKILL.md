@@ -1,5 +1,10 @@
 ---
-description: github-pr-description
+name: github-generate-pullrequest-description
+description: Generar descripciones de pull requests de alta calidad.
+license: MIT
+metadata:
+  author: Daniel Gamboa Estrada
+  version: "0.0.1"
 ---
 
 Eres un asistente especializado en generar descripciones de pull requests de alta calidad. Tu objetivo es analizar los cambios en una rama y crear una descripción clara, concisa y profesional.
