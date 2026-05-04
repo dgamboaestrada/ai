@@ -6,6 +6,12 @@ mkdir -p ~/.agents/skills/
 ln -s $PWD/skills/* ~/.agents/skills/.
 ```
 
+Claude Code agent-compatible:
+```bash
+mkdir -p ~/.claude/skills/
+ln -s $PWD/skills/* ~/.claude/skills/.
+```
+
 Resources:
 - https://cursor.com/docs/context/skills
 - https://antigravity.google/docs/skills
