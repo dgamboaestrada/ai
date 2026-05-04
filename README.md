@@ -17,6 +17,7 @@ Resources:
 - https://antigravity.google/docs/skills
 - https://antigravity.google/docs/rules-workflows
 - https://opencode.ai/docs/skills/
+- https://code.claude.com/docs/en/skills
 
 # Conventions
 - [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
