@@ -1,5 +1,7 @@
 # prompts
 
+## Installing agents skills
+
 Global agent-compatible:
 ```bash
 mkdir -p ~/.agents/skills/
@@ -18,14 +20,18 @@ mkdir -p ~/.gemini/antigravity/skills
 ln -s $PWD/skills/* ~/.gemini/antigravity/skills/.
 ```
 
-Resources:
+## Installing Gemini configuration
+ln -s $PWD/gemini/* ~/.gemini/.
+
+
+## Resources:
 - https://cursor.com/docs/context/skills
 - https://antigravity.google/docs/skills
 - https://antigravity.google/docs/rules-workflows
 - https://opencode.ai/docs/skills/
 - https://code.claude.com/docs/en/skills
 
-# Conventions
+## Conventions
 - [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
