@@ -4,7 +4,7 @@ description: Create a pull request using GitHub CLI.
 license: MIT
 metadata:
   author: Daniel Gamboa Estrada
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # Role and Context
@@ -12,9 +12,14 @@ You are a GitHub expert specializing in efficient Pull Request management using 
 
 ## Full Workflow
 
-### 1. Verify Repository Status
-Before creating a PR, always verify:
+### 1. Identify Base Branch and Repository Status
+Before creating a PR, always identify the base branch (usually `main` or `master`) and verify the repository state.
+
 ```bash
+# Detect base branch (main or master), prioritizing main if both exist
+BASE_BRANCH=$(git branch -r | grep -E 'origin/(main|master)$' | sed 's/.*origin\///' | sort | head -n 1)
+echo "Detected base branch: $BASE_BRANCH"
+
 git status
 git log --oneline -10
 ```
@@ -26,17 +31,17 @@ git push origin <BRANCH-NAME>
 ```
 
 ### 3. Analyze Changes for the PR Body
-Before creating the PR, analyze the changes to write a high-quality description.
+Before creating the PR, analyze the changes against the detected `$BASE_BRANCH` to write a high-quality description.
 
 #### 3.1 View branch commits
 ```bash
-git log --oneline origin/main..HEAD
+git log --oneline origin/$BASE_BRANCH..HEAD
 ```
-This shows the commits that are in your branch but not in main.
+This shows the commits that are in your branch but not in the base branch.
 
 #### 3.2 View changed files
 ```bash
-git diff origin/main...HEAD --name-status
+git diff origin/$BASE_BRANCH...HEAD --name-status
 ```
 Shows which files were modified (M), added (A), or deleted (D).
 
@@ -100,10 +105,10 @@ Use the `gh pr create` command with these considerations:
 
 ```bash
 # Normal PR (default)
-gh pr create --base main --head <BRANCH-NAME> --title "<PREFIX>: <DESCRIPTION>" --body "<DETAILED-DESCRIPTION>"
+gh pr create --base $BASE_BRANCH --head <BRANCH-NAME> --title "<PREFIX>: <DESCRIPTION>" --body "<DETAILED-DESCRIPTION>"
 
 # Draft PR (only if requested) - --draft flag at the beginning for better visibility
-gh pr create --draft --base main --head <BRANCH-NAME> --title "<PREFIX>: <DESCRIPTION>" --body "<DETAILED-DESCRIPTION>"
+gh pr create --draft --base $BASE_BRANCH --head <BRANCH-NAME> --title "<PREFIX>: <DESCRIPTION>" --body "<DETAILED-DESCRIPTION>"
 ```
 
 #### Important Title Rules:
@@ -113,7 +118,7 @@ gh pr create --draft --base main --head <BRANCH-NAME> --title "<PREFIX>: <DESCRI
   - If the branch is `feature-123` → use `feature-123: ...`
   - If the branch is `Fix-Bug-456` → use `Fix-Bug-456: ...`
 
-#### Full Example:
+#### Full Example (Assuming BASE_BRANCH is main):
 ```bash
 # For branch TASK-1234 (Normal PR)
 gh pr create --base main --head TASK-1234 --title "TASK-1234: Add user authentication middleware" --body "Added authentication middleware to protect routes that require user login. Includes JWT token validation and automatic redirection to login page for unauthenticated users."
@@ -133,9 +138,9 @@ gh pr view --web
 
 ## Common Errors and Solutions
 
-### Error: "No commits between main and <branch>"
-**Cause**: Branch hasn't been pushed
-**Solution**: Run `git push origin <branch-name>` before creating the PR
+### Error: "No commits between $BASE_BRANCH and <branch>"
+**Cause**: Branch hasn't been pushed or you are comparing against the wrong base branch.
+**Solution**: Run `git push origin <branch-name>` before creating the PR and ensure `$BASE_BRANCH` is correct.
 
 ### Error: "Head sha can't be blank"
 **Cause**: Branch doesn't exist in the remote repository
@@ -153,6 +158,7 @@ Before creating a PR, verify:
 - [ ] Modified files have been analyzed with `git diff`
 - [ ] Branch has been pushed to the remote repository
 - [ ] Branch name in `--head` matches the real name exactly (including casing)
+- [ ] Base branch in `--base` is correct (`main` or `master`)
 - [ ] Title prefix uses exactly the same format as the branch name
 - [ ] Body includes: Description, Main Changes, and Modified Files
 - [ ] Body description is clear, structured, and explains what and why
@@ -160,20 +166,21 @@ Before creating a PR, verify:
 ## Sequence of Commands (Full Example)
 
 ```bash
-# 1. Verify status and commits
+# 1. Identify base branch and verify status
+BASE_BRANCH=$(git branch -r | grep -E 'origin/(main|master)$' | sed 's/.*origin\///' | sort | head -n 1)
 git status
 git log --oneline -10
 
 # 2. Analyze changes for the body
-git log --oneline origin/main..HEAD
-git diff origin/main...HEAD --name-status
+git log --oneline origin/$BASE_BRANCH..HEAD
+git diff origin/$BASE_BRANCH...HEAD --name-status
 git show --stat HEAD~3..HEAD
 
 # 3. Push (if not already done)
 git push origin TASK-1234
 
 # 4. Create PR with structured description (Normal PR by default)
-gh pr create --base main --head TASK-1234 \
+gh pr create --base $BASE_BRANCH --head TASK-1234 \
   --title "TASK-1234: Description of changes" \
   --body "## Description
 
@@ -194,7 +201,7 @@ Brief summary of changes.
 - \`src/file2.ts\`"
 
 # 4b. Create Draft PR (only if explicitly requested) - --draft flag at the beginning
-gh pr create --draft --base main --head TASK-1234 \
+gh pr create --draft --base $BASE_BRANCH --head TASK-1234 \
   --title "TASK-1234: Description of changes" \
   --body "## Description
 
@@ -213,6 +220,10 @@ Brief summary of changes.
 
 - \`src/file1.ts\`
 - \`src/file2.ts\`"
+
+# 5. Open in browser
+gh pr view --web
+```
 
 # 5. Open in browser
 gh pr view --web

@@ -4,7 +4,7 @@ description: Generate high-quality pull request descriptions.
 license: MIT
 metadata:
   author: Daniel Gamboa Estrada
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # Role and Context
@@ -25,12 +25,16 @@ git log --oneline -10
 View the latest commits to understand the context and commit messages.
 
 ### 3. Compare with the Base Branch
-```bash
-# Identify the base branch (usually main or master)
-git log --oneline origin/main..HEAD 2>/dev/null || git log --oneline origin/master..HEAD 2>/dev/null
+Before generating the description, identify the base branch (usually `main` or `master`).
 
-# See specific changes
-git diff origin/main...HEAD --name-status
+```bash
+# Detect base branch (main or master), prioritizing main if both exist
+BASE_BRANCH=$(git branch -r | grep -E 'origin/(main|master)$' | sed 's/.*origin\///' | sort | head -n 1)
+echo "Detected base branch: $BASE_BRANCH"
+
+# View specific changes against the base branch
+git log --oneline origin/$BASE_BRANCH..HEAD
+git diff origin/$BASE_BRANCH...HEAD --name-status
 ```
 This shows which files were modified, added, or deleted.
 
@@ -104,22 +108,21 @@ Structure the description in the following format:
 ## Sequence of Commands (Full Example)
 
 ```bash
-# 1. Verify current branch
+# 1. Identify base branch and verify current branch
+BASE_BRANCH=$(git branch -r | grep -E 'origin/(main|master)$' | sed 's/.*origin\///' | sort | head -n 1)
 git status
 
-# 2. See commits
+# 2. See commits and compare with base branch
 git log --oneline -10
+git log --oneline origin/$BASE_BRANCH..HEAD
 
-# 3. Compare with main
-git log --oneline origin/main..HEAD
+# 3. See modified files
+git diff origin/$BASE_BRANCH...HEAD --name-status
 
-# 4. See modified files
-git diff origin/main...HEAD --name-status
-
-# 5. See details of commits
+# 4. See details of commits
 git show --stat HEAD~3..HEAD
 
-# 6. Read key files (use file reading tools)
+# 5. Read key files (use file reading tools)
 ```
 
 ## Output Example
