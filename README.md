@@ -1,4 +1,4 @@
-# prompts
+# Prompts
 
 ## Installing agents skills
 
@@ -31,6 +31,7 @@ ln -s $PWD/gemini/* ~/.gemini/.
 - https://cursor.com/docs/context/skills
 - https://geminicli.com/docs/
 - https://opencode.ai/docs/skills/
+- https://docs.continue.dev/reference
 
 ## Conventions
 - [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
