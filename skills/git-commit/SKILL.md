@@ -97,27 +97,23 @@ docs: update installation guide
 ```
 
 Commit with body (only when context is necessary):
-
 ```
-fix: prevent racing of requests
+docs: update resource documentation
 
-Introduce a request id and a reference to latest request. Dismiss
-incoming responses other than from latest request.
-
-Reviewed-by: Z
-Refs: #123
+- Alphabetize resource links for better readability
+- Add Gemini CLI documentation link
 ```
 
 ```
 feat!: drop support for Node 6
 
-BREAKING CHANGE: use JavaScript features not available in Node 6.
+- BREAKING CHANGE: use JavaScript features not available in Node 6.
 ```
 
 ```
 revert: let us never again speak of the noodle incident
 
-Refs: 676104e, a215868
+- Refs: 676104e, a215868
 ```
 
 ### 4. Mandatory Confirmation

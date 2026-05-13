@@ -86,16 +86,20 @@ Commit with body (only when context is necessary):
 ```
 BUGFIX-042: update service configuration
 
-Resource parameters adjusted for better performance under load.
-
-Reviewed-by: Team Lead
-Refs: #123
+- Resource parameters adjusted for better performance under load.
 ```
 
 ```
 FEATURE-015: add retry logic to API client
 
-Prevents cascading failures during transient network issues.
+- Prevents cascading failures during transient network issues.
+```
+
+```
+DOCS-089: update resource documentation
+
+- Alphabetize resource links for better readability
+- Add Gemini CLI documentation link
 ```
 
 ### 4. Mandatory Confirmation
