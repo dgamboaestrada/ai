@@ -70,10 +70,12 @@ A noun describing the section of the codebase in parentheses, e.g. `feat(parser)
 - Short summary of the code changes in imperative mood ("add", not "added" or "adds")
 - No period at the end
 
-#### Body (optional)
+#### Body (optional, use sparingly)
 
+- Only add a body if the description alone doesn't explain the intent
 - Begins one blank line after the description
-- Free-form; explains the *why* behind the change, not the *what*
+- Keep it brief: 1-2 sentences max explaining the *why*, not the *what*
+- The diff already shows what changed — body should explain why it was necessary
 
 #### Footers (optional)
 
@@ -84,9 +86,17 @@ A noun describing the section of the codebase in parentheses, e.g. `feat(parser)
 
 #### Examples
 
+Simple commit (no body needed):
+
 ```
 feat(lang): add Polish language
 ```
+
+```
+docs: update installation guide
+```
+
+Commit with body (only when context is necessary):
 
 ```
 fix: prevent racing of requests
@@ -116,13 +126,22 @@ The agent **MUST** present the proposed commit message to the user and wait for 
 
 ### 5. Create the commit
 
+Only include a body if the commit requires additional context beyond the description. If included, keep it brief (1-2 sentences explaining why).
+
+```bash
+git commit -m "$(cat <<'EOF'
+<type>[optional scope]: <description>
+EOF
+)"
+```
+
+With body (only when necessary):
+
 ```bash
 git commit -m "$(cat <<'EOF'
 <type>[optional scope]: <description>
 
-[optional body]
-
-[optional footer(s)]
+<concise explanation of why>
 EOF
 )"
 ```
