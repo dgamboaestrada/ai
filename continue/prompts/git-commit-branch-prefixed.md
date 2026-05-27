@@ -53,10 +53,12 @@ The commit message MUST follow this structure:
 - No period at the end
 - Example: `FEATURE-001: add new language support`
 
-#### Body (optional)
+#### Body (optional, use sparingly)
 
+- Only add a body if the description alone doesn't explain the intent
 - Begins one blank line after the description
-- Free-form; explains the *why* behind the change, not the *what*
+- Keep it brief: 1-2 sentences max explaining the *why*, not the *what*
+- The diff already shows what changed — body should explain why it was necessary
 
 #### Footers (optional)
 
@@ -67,22 +69,35 @@ The commit message MUST follow this structure:
 
 #### Examples
 
+Simple commit (no body needed):
+
 ```
 FEATURE-001: add new language support
 ```
 
 ```
+TASK-789: remove deprecated access rule
+```
+
+Commit with body (only when context is necessary):
+
+```
 BUGFIX-042: update service configuration
 
-This change improves performance by adjusting resource parameters
-and allocation for better utilization.
-
-Reviewed-by: Team Lead
-Refs: #123
+- Resource parameters adjusted for better performance under load.
 ```
 
 ```
-TASK-789: remove deprecated access rule
+FEATURE-015: add retry logic to API client
+
+- Prevents cascading failures during transient network issues.
+```
+
+```
+DOCS-089: update resource documentation
+
+- Alphabetize resource links for better readability
+- Add Gemini CLI documentation link
 ```
 
 ### 4. Mandatory Confirmation
@@ -91,13 +106,22 @@ The agent **MUST** present the proposed commit message to the user and wait for 
 
 ### 5. Create the commit
 
+Only include a body if the commit requires additional context beyond the description. If included, keep it brief (1-2 sentences explaining why).
+
+```bash
+git commit -m "$(cat <<'EOF'
+<branch>: <description>
+EOF
+)"
+```
+
+With body (only when necessary):
+
 ```bash
 git commit -m "$(cat <<'EOF'
 <branch>: <description>
 
-[optional body]
-
-[optional footer(s)]
+<concise explanation of why>
 EOF
 )"
 ```

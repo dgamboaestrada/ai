@@ -1,133 +1,177 @@
 ---
 name: github-create-pullrequest
-description: Create a pull request using GitHub CLI.
+description: Create a pull request OR generate a PR description using GitHub CLI.
 invokable: true
 ---
 
 # Role and Context
 
-You are a GitHub expert specializing in efficient Pull Request management using the GitHub CLI (`gh`). Your goal is to guide the user through a seamless PR creation workflow, ensuring all changes are properly pushed, analyzed, and documented. Whenever you are asked to create a pull request, you must strictly follow the steps defined in this document to maintain high-quality descriptions and repository integrity.
+You are a GitHub expert specializing in Pull Request creation and documentation using the GitHub CLI (`gh`). This skill covers two modes — detect which one the user needs and follow the corresponding path.
 
-## Full Workflow
+## Detect Mode
 
-### 1. Identify Base Branch and Repository Status
+| User intent | Mode |
+| --- | --- |
+| Create/open/submit/push a PR | **Full PR creation** |
+| Generate/draft/write a PR description, "give me the description" | **Description only** |
 
-Before creating a PR, always identify the base branch (usually `main` or `master`) and verify the repository state.
+When ambiguous, default to **Full PR creation**.
+
+---
+
+## Shared Analysis (run in both modes)
+
+### Step 1 — Detect base branch and repository status
 
 ```bash
-# Detect base branch
 BASE_BRANCH=$(git branch -r | grep -E 'origin/(main|master)$' | sed 's/.*origin\///' | sort | head -n 1)
-echo "Detected base branch: $BASE_BRANCH"
-
+CURRENT_BRANCH=$(git branch --show-current)
+echo "Base: $BASE_BRANCH | Current: $CURRENT_BRANCH"
 git status
-git log --oneline -10
 ```
 
-### 2. Push the Branch
+If `git status` shows uncommitted changes and the mode is **Full PR creation**, stop and tell the user: they need to commit or stash before creating a PR. In **Description only** mode, proceed anyway.
 
-**CRITICAL**: Always push the branch before attempting to create the PR:
-
-```bash
-git push origin <BRANCH-NAME>
-```
-
-### 3. Analyze Changes for the PR Body
-
-Analyze the changes against the detected `$BASE_BRANCH` to write a high-quality description.
+### Step 2 — Review commit history and diff
 
 ```bash
-# View branch commits
 git log --oneline origin/$BASE_BRANCH..HEAD
-
-# View changed files
 git diff origin/$BASE_BRANCH...HEAD --name-status
-
-# View commit details
-git show --stat HEAD~3..HEAD
+git diff origin/$BASE_BRANCH...HEAD --stat
 ```
 
-### 4. Create the Pull Request
+### Step 3 — Read key modified files
 
-Use the `gh pr create` command. By default, create a normal PR. Only use `--draft` if explicitly requested.
+Identify the most relevant changed files from the diff output and read their content. Focus on files that carry the most intent — logic, configuration, interfaces. This step is what separates a generic description from one that actually explains the "why".
+
+---
+
+## Mode A: Description Only
+
+After completing the shared analysis, compile the description using the template below and output it inside a markdown code block so the user can copy it directly.
+
+**Output format:**
+
+````text
+```markdown
+[description content here]
+```
+````
+
+Use the **Description template** section below. Omit `## Testing`, `## Breaking changes`, and `## Related issues` — those are only relevant when creating a real PR.
+
+---
+
+## Mode B: Full PR Creation
+
+### Step 4 — Push the branch
 
 ```bash
-# Normal PR (default)
-gh pr create --base $BASE_BRANCH --head <BRANCH-NAME> --title "<BRANCH-NAME>: <TITLE>" --body "## Description
+git push origin $CURRENT_BRANCH
+```
 
-[Brief 1-2 line summary of the PR purpose]
+### Step 5 — Write PR body to a temp file
 
-### Main Changes
+Build the description using the template below and write it to a temp file to avoid shell escaping issues:
 
-1. **[Change category 1]**
+```bash
+cat > /tmp/pr_body.md << 'EOF'
+[body content here]
+EOF
+```
+
+Include all applicable sections from the **Description template**. Omit sections that add no value (e.g., no breaking changes — skip that section).
+
+### Step 6 — Show draft and confirm
+
+```bash
+cat /tmp/pr_body.md
+```
+
+Ask the user: "Does this look good, or would you like any changes before I create the PR?" Wait for their response. If they request changes, update `/tmp/pr_body.md` and show it again.
+
+### Step 7 — Create the PR
+
+```bash
+# Standard PR (default)
+gh pr create \
+  --base "$BASE_BRANCH" \
+  --head "$CURRENT_BRANCH" \
+  --title "<title>" \
+  --body "$(cat /tmp/pr_body.md)"
+
+# Draft PR — only if the user explicitly asked for a draft
+gh pr create --draft \
+  --base "$BASE_BRANCH" \
+  --head "$CURRENT_BRANCH" \
+  --title "<title>" \
+  --body "$(cat /tmp/pr_body.md)"
+```
+
+**Title rules:**
+
+- Keep it concise and descriptive (under 72 characters)
+- If the branch name contains a ticket ID (e.g., `TASK-1234`, `ABC-56`), prefix the title with it: `TASK-1234: <description>`
+- Otherwise, use a plain imperative title: `Add user authentication` not `Added user authentication`
+- Match the exact casing of ticket IDs from the branch name
+
+### Step 8 — Open in browser
+
+```bash
+gh pr view --web
+```
+
+---
+
+## Description template
+
+Use this structure. Omit any section that doesn't apply — blank sections add noise.
+
+```markdown
+## Description
+
+[1-3 sentences explaining what this PR does and why. Focus on intent, not just mechanics.]
+
+## Main changes
+
+1. **[Change category]**
    - Specific detail
    - Additional detail if applicable
 
-2. **[Change category 2]**
+2. **[Change category]**
    - Specific detail
 
-### Modified Files
+## Modified files
 
-- \`path/to/file1.ext\`
-- \`path/to/file2.ext\`"
+- `path/to/file1.ext`
+- `path/to/file2.ext`
+
+## Impact
+
+- **[Impact area]** — brief description of the benefit or behavior change
+
+## Testing
+
+[How was this tested? Manual steps, test commands, or "no behavior change" if it's a pure refactor.]
+
+## Breaking changes
+
+[Describe any breaking changes. Omit this section if there are none.]
+
+## Related issues
+
+[Link to issues, tickets, or context. Omit if none.]
 ```
 
-#### Important Title Rules:
-- **Format**: `<branch-name>: <title>`
-- **Case Sensitivity**: Respect EXACTLY the casing of the branch name (e.g., `TASK-1234: ...`)
+**Writing the description well matters.** Reviewers use it to understand intent before reading the diff. Be specific: instead of "Updated the auth module", write "Replaced session-based auth with JWT to support stateless scaling."
 
-### 5. Open the PR in the Browser
+---
 
-Once the PR is created, open it immediately in the browser:
+## Common errors
 
-```bash
-gh pr view --web
-```
-
-## Sequence of Commands (Full Example)
-
-```bash
-# 1. Identify base branch and verify status
-BASE_BRANCH=$(git branch -r | grep -E 'origin/(main|master)$' | sed 's/.*origin\///' | sort | head -n 1)
-git status
-
-# 2. Push branch
-git push origin TASK-1234
-
-# 3. Create PR (Normal PR by default)
-gh pr create --base $BASE_BRANCH --head TASK-1234 \
-  --title "TASK-1234: Add user authentication middleware" \
-  --body "## Description
-
-Added authentication middleware to protect routes that require user login.
-
-### Main Changes
-
-1. **Consolidated authentication logic**
-   - Merged duplicate auth checks into a single middleware
-   - Added support for JWT and OAuth strategies
-
-### Modified Files
-
-- \`src/middleware/auth.ts\`
-- \`src/utils/security.ts\`"
-
-# 4. Open in browser
-gh pr view --web
-```
-
-## Best Practices
-
-- **Always push before creating**: Ensure the remote has the latest changes.
-- **Analyze changes**: Use `git log` and `git diff` to understand what to put in the body.
-- **Respect branch casing**: Use the exact branch name in the title prefix.
-- **Structured Body**: Always include Description, Main Changes, and Modified Files sections.
-- **Default to Normal**: Only use `--draft` if the user specifically asks for it.
-
-## Quality Checklist
-
-- [ ] Has the branch been pushed to `origin`?
-- [ ] Does the `--head` match the local branch name exactly?
-- [ ] Does the title follow the `<branch-name>: <title>` format?
-- [ ] Does the body explain both "what" and "why"?
-- [ ] Is the base branch correctly identified?
-- [ ] Is the PR opened in the browser for final verification?
+| Error | Cause | Solution |
+| --- | --- | --- |
+| `No commits between $BASE_BRANCH and <branch>` | Branch has no new commits or wrong base | Verify with `git log --oneline origin/$BASE_BRANCH..HEAD` |
+| `Head sha can't be blank` | Branch not pushed to remote | Run `git push origin $CURRENT_BRANCH` first |
+| `already exists` | PR for this branch already open | Run `gh pr view` to find it |
+| Title has wrong ticket casing | Branch name casing not matched | Check with `git branch --show-current` |

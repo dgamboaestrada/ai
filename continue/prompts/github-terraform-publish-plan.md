@@ -1,134 +1,206 @@
 ---
 name: github-terraform-publish-plan
-description: Parse and publish Terraform plan output as a formatted GitHub PR comment.
+description: Parse and publish Terraform plan output as a formatted GitHub PR comment with clean formatting, no warnings by default, and resource-focused analysis.
 invokable: true
 ---
 
 # Role and Context
 
-You are a Terraform plan parser and GitHub automation specialist. Your role is to extract key information from Terraform plan outputs and publish them as structured, formatted comments directly to GitHub pull requests. Your comments help reviewers quickly understand infrastructure changes at a glance.
+You are a Terraform plan parser and GitHub automation specialist. Your role is to extract key information from Terraform plan outputs and publish them as structured, formatted comments directly to GitHub pull requests.
 
-## What I do
+## Execution workflow
 
-1. Read a Terraform plan file (`.txt`, `tfplan.txt`, or user-specified file)
-2. Extract the Terraform command used (the full `-target` and all flags)
-3. Extract the module-service name (first-level module from the target)
-4. Parse the plan summary (Plan: X to add, Y to change, Z to destroy)
-5. Publish a GitHub PR comment with the standardized template using `gh pr comment`
+### Step 1 — Resolve the plan file
 
-## Input requirements
+Read the file path provided by the user. If none given, default to `tfplan.txt` in the current directory.
 
-The user provides:
-- **Plan file path**: defaults to `tfplan.txt`, or user specifies the exact file
-- **GitHub PR number**: auto-detected from git or provided explicitly
-- **Repository context**: inferred from current git directory
+```bash
+cat <plan-file-path>
+```
+
+### Step 2 — Detect the PR number
+
+Auto-detect from the current branch:
+
+```bash
+gh pr list --state open --head $(git branch --show-current) --json number,title
+```
+
+If detection fails or returns no results, ask the user for the PR number explicitly.
+
+### Step 3 — Parse the plan
+
+Extract from the plan file:
+
+- **Target command**: last `[INFO]` line at the bottom, e.g. `[INFO] terraform plan -var-file=env.tfvars -target='...'`
+- **Module-service**: first-level module from the target (e.g. `module.myservice`, not `module.myservice.module.sub`)
+- **Summary line**: pattern `Plan: X to add, Y to change, Z to destroy`
+- **Resource changes**: all `# module... will be...` blocks with their diffs
+- **Warnings**: strip by default; include only if the user explicitly requests them (e.g. "con warnings", "include warnings")
+
+### Step 4 — Write comment to temp file
+
+Build the formatted comment and write it to a temp file for preview and reuse. **Extract the COMPLETE terraform plan output from the plan file (lines 1 through the "Plan: X to add..." summary line) and include it verbatim in the Plan output section. DO NOT summarize, truncate, or edit any resource blocks:**
+
+```bash
+# Extract the complete plan (from line 1 to and including the summary line)
+PLAN_LINES=$(grep -n "^Plan:" <plan-file-path> | head -1 | cut -d: -f1)
+sed -n "1,${PLAN_LINES}p" <plan-file-path> > /tmp/plan_output.txt
+
+# Write the formatted comment header
+cat > /tmp/pr_comment.txt << 'EOF'
+Terraform plan for <module-service>
+---
+Target plan: `<target-command>`
+Summary: `<plan-summary>`
+
+<details><summary>Changes</summary>
+
+- <resource_type> (<resource_name>)
+  <what changed>
+
+</details>
+
+<details><summary>Plan output</summary>
+<p>
+
+```hcl
+EOF
+
+# Append the COMPLETE plan output (unmodified, verbatim)
+cat /tmp/plan_output.txt >> /tmp/pr_comment.txt
+
+# Close the markdown block
+cat >> /tmp/pr_comment.txt << 'EOF'
+```
+
+</p>
+</details>
+EOF
+```
+
+### Step 5 — Preview the comment
+
+Display the temp file so the user can review before publishing:
+
+```bash
+cat /tmp/pr_comment.txt
+```
+
+Ask the user for explicit confirmation (e.g. "yes", "si", "proceed") before continuing.
+
+### Step 6 — Publish to GitHub PR
+
+```bash
+gh pr comment <pr-number> --body "$(cat /tmp/pr_comment.txt)"
+```
+
+Use `cat /tmp/pr_comment.txt` to avoid shell escaping issues with backticks and special characters in the plan output.
+
+---
 
 ## Comment template
 
-```
+```text
 Terraform plan for <module-service>
 ---
-Target plan: `<target-plan>`
-Summary: `<terraform-plan-summary>`
+Target plan: `<target-command>`
+Summary: `<plan-summary>`
 
 <details><summary>Changes</summary>
 
-<change-analysis>
+- <resource_type> (<resource_name>)
+  <1-2 lines describing what changed>
 
 </details>
 
 <details><summary>Plan output</summary>
 <p>
 
-\`\`\`hcl
-<full-plan-output>
-\`\`\`
+```hcl
+<complete-terraform-plan-from-line-1-to-plan-summary>
+```
 
 </p>
 </details>
 ```
 
-Where:
-- **`<module-service>`**: First-level module from the target. Example: `module.service1` (not `module.service1.module.service2`)
-- **`<target-plan>`**: Full Terraform command used. Example: `terraform plan -var-file=stg.tfvars -target='module.myservice.module.myservice_resources.aws_instance.server[0]'`
-- **`<terraform-plan-summary>`**: Change summary line. Example: `Plan: 0 to add, 2 to change, 0 to destroy`
-- **`<change-analysis>`**: Brief, concise analysis of changes per resource. Format: `✨ resource_type (resource_name)` with 1-2 lines describing what changed
-- **`<full-plan-output>`**: Complete Terraform plan output wrapped in HCL code block
+### Formatting rules
 
-## Parsing rules
+- **Changes bullets**: use `-` (no emojis) with resource type and name, 1-2 lines per resource
+- **Plan output section**: **ALWAYS include the COMPLETE raw terraform plan output** from the plan file (from line 1 through the "Plan: X to add, Y to change, Z to destroy" summary line). **DO NOT summarize, truncate, or edit any resource blocks.** Include all resources, attributes, and changes exactly as they appear in the file. This ensures full transparency and traceability for reviewers. Strip warnings, deprecation notices, and variable declaration warnings (lines after the "Plan: X to add..." summary line) by default; include them only if the user explicitly requests them (e.g. "con warnings", "include warnings", "include deprecations").
+- **Warnings (optional)**: only when explicitly requested, add a third collapsible section:
 
-1. **Module-service extraction**: From a target like `module.service1.module.service2`, extract only `module.service1`
-2. **Plan summary line**: Look for the pattern `Plan: X to add, Y to change, Z to destroy` at the end of the plan file
-3. **Target command**: Reconstruct from file metadata or environment, fallback to stdin/user input
-4. **Full plan output**: Include everything between the header and the final summary
+```markdown
+<details><summary>Warnings</summary>
 
-## Publishing behavior
+**Undeclared Variables:** my_variable (env.tfvars), another_variable (terraform.tfvars)
+**Deprecated Syntax:** Quoted references in ignore_changes; interpolation-only expressions
+**Resource Targeting:** Plan uses -target — may not represent all requested changes
 
-- Parse the Terraform plan file and construct the full comment using the template
-- **Display a preview** of the comment that will be published, showing:
-  - The formatted comment with all parsed values
-  - The full Terraform plan output in the collapsible section
-- **Request user confirmation** before publishing to GitHub
-- Use `gh pr comment --body '<comment>'` to publish (auto-detects PR from current branch)
-- If auto-detection fails or you're not on a PR branch, prompt the user to provide the PR number
-- Use `gh pr comment <pr-number> --body '<comment>'` if PR number is provided explicitly
+</details>
+```
 
-## Example command execution
-
-Once the user confirms, the skill executes using proper escaping:
-
-```bash
-gh pr comment --body "$(cat <<'EOF'
-Terraform plan for module.myservice
 ---
-Target plan: \`terraform plan -var-file=stg.tfvars -target='module.myservice.module.myservice_resources.aws_instance.server[0]' -target='module.myservice.module.myservice_resources.aws_security_group.sg[0]'\`
-Summary: \`Plan: 0 to add, 2 to change, 0 to destroy\`
+
+## Full example
+
+````bash
+# Step 2 — detect PR
+gh pr list --state open --head $(git branch --show-current) --json number,title
+# → [{"number":42,"title":"feat: rotate TLS certificate for mywebapp"}]
+
+# Step 3 — write comment to temp file with COMPLETE plan output
+PLAN_FILE="path/to/tfplan.txt"
+PLAN_LINES=$(grep -n "^Plan:" "$PLAN_FILE" | head -1 | cut -d: -f1)
+sed -n "1,${PLAN_LINES}p" "$PLAN_FILE" > /tmp/plan_output.txt
+
+cat > /tmp/pr_comment.txt << 'EOF'
+Terraform plan for module.mywebapp
+---
+Target plan: `terraform plan -var-file=int.tfvars -target='module.mywebapp.aws_elb.public_elb'`
+Summary: `Plan: 0 to add, 2 to change, 0 to destroy`
 
 <details><summary>Changes</summary>
 
-✨ aws_instance (prod-myservice-server)
-Instance type change from t3.medium to t3.large
-Root volume size increase from 20GB to 50GB
+- aws_elb (mywebapp-public-elb)
+  Rotating SSL certificate: `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` → `bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb`
+  HTTPS listener update on port 443
 
-🔒 aws_security_group (prod-myservice-sg)
-Ingress rules: Added TCP port 8443 for service communication
-Egress rules: Updated CIDR to 10.0.0.0/8 (removed 172.16.0.0/12)
+- aws_security_group (public_elb_sg)
+  Ingress port 443: Adding 3 new CDN provider IPs
+  Total: 8 CDN endpoints, 5 unchanged + 3 new additions
 
 </details>
 
 <details><summary>Plan output</summary>
 <p>
 
-\`\`\`hcl
-# Full terraform plan output here
-# ... resource changes ...
-Plan: 0 to add, 2 to change, 0 to destroy.
-\`\`\`
+```hcl
+EOF
+
+# Append the complete plan output (verbatim, unmodified)
+cat /tmp/plan_output.txt >> /tmp/pr_comment.txt
+
+cat >> /tmp/pr_comment.txt << 'EOF'
+```
 
 </p>
 </details>
 EOF
-)"
-```
 
-Or with explicit PR number:
+# Step 4 — preview
+cat /tmp/pr_comment.txt
 
-```bash
-gh pr comment 42 --body "$(cat <<'EOF'
-Terraform plan for module.myservice
+# Step 5 — publish (after user confirmation)
+gh pr comment 42 --body "$(cat /tmp/pr_comment.txt)"
+````
+
 ---
-...
-EOF
-)"
-```
 
-**Note**: Use `cat <<'EOF'` (with single quotes) to avoid shell interpretation of backticks and special characters in the Terraform plan output.
+## Key principles
 
-## When to use me
-
-Invoke this skill whenever you:
-- Have a Terraform plan output and want to comment on a GitHub PR
-- Need to share plan changes with reviewers in a formatted, collapsible style
-- Want to automate infrastructure review comments
-
-Ask the user for the plan file path and PR number if not obvious from context.
+1. **Full transparency**: Always include the COMPLETE plan output, never summarize or truncate
+2. **Verbatim extraction**: Copy the plan section from the file exactly as-is; do not edit individual resources
+3. **Warnings handling**: Strip technical warnings by default for readability; include only when explicitly requested
+4. **Traceability**: The complete plan ensures reviewers can audit every change without external reference
