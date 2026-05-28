@@ -1,6 +1,11 @@
 ---
 name: github-terraform-publish-plan
-description: Parse and publish Terraform plan output as a formatted GitHub PR comment with clean formatting, no warnings by default, and resource-focused analysis.
+description: |
+  Invoke when the user wants to add Terraform or Terragrunt plan output as a formatted comment on an existing GitHub pull request. The trigger is two signals together: (1) user already has plan output — a file path, a /tmp location, or pasted text — and (2) wants it posted as a PR comment so reviewers can see the changes.
+
+  Covers phrasings like: "post the plan to the PR", "add a terraform plan comment on PR #N", "drop the plan output on the open PR", "publish the terraform plan to GitHub", "comment the plan on this branch's PR".
+
+  Skip when: running terraform plan, explaining or analyzing what a plan will change, reviewing whether a plan is safe to apply, fixing deprecation warnings, or creating a new PR.
 license: MIT
 metadata:
   author: Daniel Gamboa Estrada
