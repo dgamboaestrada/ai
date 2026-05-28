@@ -1,6 +1,11 @@
 ---
 name: git-commit
-description: Git commit staged files using Conventional Commits with auto-composed message, scope detection, validation, and branch-prefixed fallback
+description: |
+  Invoke when a user asks to commit staged git changes — including terse phrases like "do a commit", "make a commit", "commit this", "commit these changes", or any message where the user has staged files (via git add) and wants the commit step done. Also invoke when they ask for a Conventional Commits message for staged work.
+
+  This skill's purpose: generate a properly typed and scoped commit message following the Conventional Commits spec (feat/fix/perf/refactor/docs/ci/etc.), validate it, confirm with the user, then run git commit.
+
+  Do NOT invoke for: push, pull, merge, rebase, cherry-pick, squash, stash, or git history operations.
 license: MIT
 metadata:
   author: Daniel Gamboa Estrada
