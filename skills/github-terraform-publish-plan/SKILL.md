@@ -60,6 +60,7 @@ cat > /tmp/pr_comment.txt << 'EOF'
 Terraform plan for <module-service>
 ---
 Target plan: `<target-command>`
+Terraform path: `<relativ-path-of-the-terraform-root-module>`
 Summary: `<plan-summary>`
 
 <details><summary>Changes</summary>
@@ -113,6 +114,7 @@ gh pr comment <pr-number> --body-file /tmp/pr_comment.txt
 Terraform plan for <module-service>
 ---
 Target plan: `<target-command>`
+Terraform path: `<relativ-path-of-the-terraform-root-module>`
 Summary: `<plan-summary>`
 
 <details><summary>Changes</summary>
@@ -169,6 +171,7 @@ cat > /tmp/pr_comment.txt << 'EOF'
 Terraform plan for module.mywebapp
 ---
 Target plan: `terraform plan -var-file=int.tfvars -target='module.mywebapp.aws_elb.public_elb'`
+Terraform path: `environment/prod/`
 Summary: `Plan: 0 to add, 2 to change, 0 to destroy`
 
 <details><summary>Changes</summary>
