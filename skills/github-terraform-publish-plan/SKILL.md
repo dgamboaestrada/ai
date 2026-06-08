@@ -88,6 +88,31 @@ cat >> /tmp/pr_comment.txt << 'EOF'
 EOF
 ```
 
+### Step 4b — Add destroy warning (if applicable)
+
+If the plan contains `terraform destroy` or `-destroy`, append this warning section to the end of the comment:
+
+```markdown
+---
+
+## Important Note
+
+**The terraform destroy must be executed from the `master` branch, not from the [CURRENT_BRANCH_NAME] branch.** If applied from the current branch, it will fail with:
+
+```
+Error: Provider configuration not present
+```
+
+This occurs because [REASON_PLACEHOLDER].
+
+**Steps to apply:**
+1. Checkout `master` branch
+2. Run: [TERRAFORM_COMMAND_PLACEHOLDER]
+3. Merge this PR to `master`.
+```
+
+Append this section at the very end of the comment (after the "Plan output" collapsible), replacing only [CURRENT_BRANCH_NAME], [REASON_PLACEHOLDER], and [TERRAFORM_COMMAND_PLACEHOLDER] with actual values derived from the plan context.
+
 ### Step 5 — Preview the comment
 
 Display the temp file so the user can review before publishing:
@@ -110,6 +135,7 @@ gh pr comment <pr-number> --body-file /tmp/pr_comment.txt
 
 ## Comment template
 
+**Standard plan:**
 ```
 Terraform plan for <module-service>
 ---
@@ -133,6 +159,36 @@ Summary: `<plan-summary>`
 
 </p>
 </details>
+```
+
+**Destroy plan (append this warning at the end):**
+```
+<details><summary>Plan output</summary>
+<p>
+
+```hcl
+<complete-terraform-plan-from-line-1-to-plan-summary>
+```
+
+</p>
+</details>
+
+---
+
+## Important Note
+
+**The terraform destroy must be executed from the `master` branch, not from the [CURRENT_BRANCH_NAME] branch.** If applied from the current branch, it will fail with:
+
+```
+Error: Provider configuration not present
+```
+
+This occurs because [REASON_PLACEHOLDER].
+
+**Steps to apply:**
+1. Checkout `master` branch
+2. Run: [TERRAFORM_COMMAND_PLACEHOLDER]
+3. Merge this PR to `master`.
 ```
 
 ### Formatting rules
@@ -159,7 +215,7 @@ Summary: `<plan-summary>`
 ```bash
 # Step 2 — detect PR
 gh pr list --state open --head $(git branch --show-current) --json number,title
-# → [{"number":42,"title":"feat: rotate TLS certificate for mywebapp"}]
+# → [{"number":42,"title":"feat: rotate TLS certificate for service"}]
 
 # Step 4 — extract the complete plan output up to the summary line
 PLAN_FILE="path/to/tfplan.txt"
@@ -168,21 +224,22 @@ sed -n "1,${PLAN_LINES}p" "$PLAN_FILE" > /tmp/plan_output.txt
 
 # Step 4 — write the comment to a temp file (Changes section built from Step 3 parsed resources)
 cat > /tmp/pr_comment.txt << 'EOF'
-Terraform plan for module.mywebapp
+Terraform plan for module.service
 ---
-Target plan: `terraform plan -var-file=int.tfvars -target='module.mywebapp.aws_elb.public_elb'`
-Terraform path: `environment/prod/`
-Summary: `Plan: 0 to add, 2 to change, 0 to destroy`
+Target plan: `terraform destroy -var-file=env.tfvars -target='module.service'`
+Terraform path: `/opt/terraform/infrastructure/env`
+Summary: `Plan: 0 to add, 0 to change, 3 to destroy`
 
 <details><summary>Changes</summary>
 
-- aws_elb (mywebapp-public-elb)
-  Rotating SSL certificate: `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` → `bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb`
-  HTTPS listener update on port 443
+- aws_security_group (service_sg)
+  Destroying security group and 2 ingress rules
 
-- aws_security_group (public_elb_sg)
-  Ingress port 443: Adding 3 new CDN provider IPs
-  Total: 8 CDN endpoints, 5 unchanged + 3 new additions
+- aws_iam_role (service_role)
+  Removing IAM role for service
+
+- aws_lambda_function (service_handler)
+  Removing Lambda function deployment
 
 </details>
 
@@ -200,6 +257,23 @@ cat >> /tmp/pr_comment.txt << 'EOF'
 
 </p>
 </details>
+
+---
+
+## Important Note
+
+**The terraform destroy must be executed from the `master` branch, not from the [CURRENT_BRANCH_NAME] branch.** If applied from the current branch, it will fail with:
+
+```
+Error: Provider configuration not present
+```
+
+This occurs because the [CURRENT_BRANCH_NAME] branch contains the changes that remove the module configuration, preventing Terraform from initializing the provider for that module.
+
+**Steps to apply:**
+1. Checkout `master` branch
+2. Run: `terraform destroy -var-file=env.tfvars -target='module.service'` from the `environment/prd` directory
+3. Merge this PR to `master`.
 EOF
 
 # Step 5 — preview
