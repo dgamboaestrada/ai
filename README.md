@@ -16,8 +16,8 @@ ln -sfn $PWD/skills/* ~/.claude/skills/.
 
 Global Antigravity agent:
 ```bash
-mkdir -p ~/.gemini/antigravity/skills
-ln -sfn $PWD/skills/* ~/.gemini/antigravity/skills/.
+mkdir -p ~/.gemini/antigravity-cli/skills/
+ln -sfn $PWD/skills/* ~/.gemini/antigravity-cli/skills/.
 ```
 
 ## Installing Global Agent configuration
