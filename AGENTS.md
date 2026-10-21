@@ -23,6 +23,7 @@
 - `yq` use it for parsing/formatting YAML
 - `aws` use it for AWS CLI commands
 - `gh` use it for GitHub CLI operations (e.g. gh issue list, gh pr create, gh repo clone)
+- `yamllint` used for yaml syntax validation
 
 ## Jira
 If you receive a Jira ticket—for example, https://example.atlassian.net/browse/PROJ-1234, retrieve the ticket information and save it to a `spec.md`.
