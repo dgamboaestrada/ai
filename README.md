@@ -1,4 +1,4 @@
-# Prompts
+# AI
 
 ## Installing agents skills
 
