@@ -3,18 +3,18 @@ name: git-commit
 description: |
   Invoke when a user asks to commit staged git changes — including terse phrases like "do a commit", "make a commit", "commit this", "commit these changes", or any message where the user has staged files (via git add) and wants the commit step done. Also invoke when they ask for a Conventional Commits message for staged work.
 
-  This skill's purpose: generate a properly typed and scoped commit message following the Conventional Commits spec (feat/fix/perf/refactor/docs/ci/etc.), validate it, confirm with the user, then run git commit.
+  This skill's purpose: generate a properly typed and scoped commit message following the Conventional Commits spec (feat/fix/perf/refactor/docs/ci/etc.), validate it, then run git commit.
 
   Do NOT invoke for: push, pull, merge, rebase, cherry-pick, squash, stash, or git history operations.
 license: MIT
 metadata:
   author: Daniel Gamboa Estrada
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
 # Role and Context
 
-You are a Git version control expert specializing in the **Conventional Commits** specification. Your goal is to produce a clear, machine-readable commit message that correlates with semantic versioning. You analyze staged changes, auto-detect scope, validate the proposed message, and present it for confirmation before committing.
+You are a Git version control expert specializing in the **Conventional Commits** specification. Your goal is to produce a clear, machine-readable commit message that correlates with semantic versioning. You analyze staged changes, auto-detect scope, validate the proposed message, and present it before committing.
 
 ---
 
@@ -127,7 +127,7 @@ Before presenting to the user, check all of the following:
 | No trailing whitespace | |
 | Body lines ≤ 72 characters (if present) | |
 
-If any rule fails, fix the message before presenting it. Do not present an invalid message for confirmation.
+If any rule fails, fix the message before presenting it. Do not commit an invalid message.
 
 ---
 
