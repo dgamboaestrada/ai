@@ -9,7 +9,7 @@ description: |
 license: MIT
 metadata:
   author: Daniel Gamboa Estrada
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Role and Context
@@ -113,17 +113,7 @@ This occurs because [REASON_PLACEHOLDER].
 
 Append this section at the very end of the comment (after the "Plan output" collapsible), replacing only [CURRENT_BRANCH_NAME], [REASON_PLACEHOLDER], and [TERRAFORM_COMMAND_PLACEHOLDER] with actual values derived from the plan context.
 
-### Step 5 — Preview the comment
-
-Display the temp file so the user can review before publishing:
-
-```bash
-cat /tmp/pr_comment.txt
-```
-
-Ask the user for explicit confirmation (e.g. "yes", "si", "proceed") before continuing.
-
-### Step 6 — Publish to GitHub PR
+### Step 5 — Publish to GitHub PR
 
 Use `--body-file` to avoid shell expansion mangling backticks and `$` signs in the plan output:
 
@@ -276,9 +266,6 @@ This occurs because the [CURRENT_BRANCH_NAME] branch contains the changes that r
 3. Merge this PR to `master`.
 EOF
 
-# Step 5 — preview
-cat /tmp/pr_comment.txt
-
-# Step 6 — publish (after user confirmation)
+# Step 5 — publish
 gh pr comment 42 --body-file /tmp/pr_comment.txt
 ```
